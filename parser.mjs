@@ -1,10 +1,11 @@
+import { unexpectedCharacter } from "./errors.mjs";
 import { isDigit, isValidIdentifierChar, isWhitespace } from "./util.mjs";
 
 export const parse = (src) => {
     let i = 0;
 
     let line = 1;
-    let lastNewLine = 0;
+    let lastNewLine = 1;
 
     const root = { type: "list", prev: null, children: [] };
     let current = root;
@@ -16,6 +17,7 @@ export const parse = (src) => {
     }
 
     const endList = () => {
+        if(!current) unexpectedCharacter(src[i - 1]);
         current.end = i;
         current.src = src.substring(current.start - (current.quoted ? 1 : 0), current.end);
         current = current.prev;

@@ -1,38 +1,38 @@
 import { makeFunction } from "../function.mjs";
-import { arg, rest, makeNumber } from '../util.mjs';
+import { arg, rest, makeNumber, makeBool } from '../util.mjs';
 
 export const mathFunctions = [
     // Arithmetic
     makeFunction(
-        "add", "Performs addition of arbitrary amount of number arguments",
+        "+", "Performs addition of arbitrary amount of number arguments",
         [rest('operands', 'number')], "number",
         (...operands) => makeNumber(operands.slice(1).reduce((prev, cur) => (prev) + cur.value, operands[0].value)),
-        ["+"]
     ),
     makeFunction(
-        "sub", "Performs subtraction of arbitrary amount of number arguments",
+        "-", "Performs subtraction of arbitrary amount of number arguments",
         [rest('operands', 'number')], "number",
         (...operands) => makeNumber(operands.slice(1).reduce((prev, cur) => (prev) - cur.value, operands[0].value)),
-        ["-"]
     ),
     makeFunction(
-        "mul", "Performs multiplication of arbitrary amount of number arguments",
+        "*", "Performs multiplication of arbitrary amount of number arguments",
         [rest('operands', 'number')], "number",
         (...operands) => makeNumber(operands.slice(1).reduce((prev, cur) => (prev) * cur.value, operands[0].value)),
-        ["*"]
     ),
     makeFunction(
-        "div", "Performs division of arbitrary amount of number arguments",
+        "/", "Performs division of arbitrary amount of number arguments",
         [rest('operands', 'number')], "number",
         (...operands) => makeNumber(operands.slice(1).reduce((prev, cur) => (prev) / cur.value, operands[0].value)),
-        ["/"]
+    ),
+    makeFunction(
+        "//", "Performs integer division of two numeric values (truncating any decimals from the result)",
+        [arg('x', 'number'), arg('y', 'number')], "number",
+        (x, y) => makeNumber(Math.floor(x?.value / y?.value)),
     ),
 
     makeFunction(
         "pow", "Raises the base value to the power specified",
         [arg('base', 'number'), arg('power', 'number')], "number",
-        (base, power) => makeNumber(Math.pow(base.value, power.value)),
-        ["^"]
+        (base, power) => makeNumber(Math.pow(base.value, power.value))
     ),
 
 

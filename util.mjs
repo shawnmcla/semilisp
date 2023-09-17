@@ -12,6 +12,8 @@ export const display = (obj, details = false) => {
         return chalk.yellow(+obj.value);
     } else if (obj?.type == 'string') {
         return chalk.green(`"${obj?.value?.toString() ?? ""}"`);
+    } else if (obj?.type == 'bool') {
+        return chalk.cyan(obj?.value?.toString());
     } else if (obj?.type == 'symbol') {
         return chalk.bold.whiteBright(obj?.value?.toString() ?? "");
     } else if (obj?.type == 'list') {
@@ -30,6 +32,7 @@ export const display = (obj, details = false) => {
             return `${chalk.italic.gray('fn')} ${chalk.bold.whiteBright(obj?.name)} (${obj?.parameters.map(p => (p?.rest ? '...' : '') + p.name).join(', ')})`
         }
     }
+    return `DON'T KNOW HOW TO DISPLAY TYPE ${obj?.type ?? "null"}`;
 }
 
 
@@ -39,7 +42,8 @@ export const dumpAst = (ast, level = 0) => {
 
     for (let item of ast.children) {
         if (item?.type === 'list') {
-            output += `\n${indent}[${dumpAst(item, level + 1)}\n${indent}]`
+            const sourceInfo = (" ".repeat(20 - (level * 2))) + chalk.gray(`line ${item.sourceLine}, col ${item.sourceCol}`);
+            output += `\n${indent}[${sourceInfo}${dumpAst(item, level + 1)}\n${indent}]`;
         } else {
             output += `\n${indent}${chalk.gray(chalk.italic(item.type) + "(")}${display(item)}${chalk.gray(')')}`;
         }

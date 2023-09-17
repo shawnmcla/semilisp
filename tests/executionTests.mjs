@@ -2,11 +2,15 @@ import { strict as assert } from "node:assert";
 import { run } from "../shitlisp.mjs";
 
 const noValue = Symbol("NO VALUE");
+const threwError = Symbol("THREW ERROR");
+
 const valueFrom = (code) => {
     try {
         const runResult = run(code);
         if (!runResult) return noValue;
-        return runResult.value;
+        if(runResult.hadError) return threwError;
+
+        return runResult.result.value;
     } catch (e) {
         return e;
     }
@@ -28,7 +32,8 @@ assert.equal(valueFrom(`(+ -10 -5)`), -15, "Adding negative literals");
 assert.equal(valueFrom(`(- 9 15)`), -6, "Subtract two numbers");
 assert.equal(valueFrom(`(* 7 3)`), 21, "Multiply two numbers");
 assert.equal(valueFrom(`(/ 33 11)`), 3, "Divide two numbers");
-assert.equal(valueFrom(`(^ 3 2)`), 9, "Pow function");
+assert.equal(valueFrom(`(// 10 3)`), 3, "Int divide two numbers");
+assert.equal(valueFrom(`(pow 3 2)`), 9, "Pow function");
 
 let x = valueFrom(`(rand-int 1 5)`);
 assert(x >= 1 && x < 5, `Random value between [1 and 5) (was: ${x})`);

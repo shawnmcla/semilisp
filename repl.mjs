@@ -69,12 +69,16 @@ function getReplInput() {
     });
 };
 
+function displayError(error) {
+    console.log(`${chalk.gray(`${error?.constructor.name ?? "Error"}:`)} ${chalk.red(error.message)}`);
+}
+
 while (!exit) {
     let input = await getReplInput();
     if (input.toLowerCase() === 'exit') {
         exit = true;
     }
-    else {
+    else if (input.trim() !== '') {
         let details = false;
         if (input.startsWith('?')) {
             details = true;
@@ -82,13 +86,17 @@ while (!exit) {
         }
 
         if (input.startsWith('#dump')) {
-            const ast = parse(input.substring(4));
+            const ast = parse(input.substring(5));
             console.log(dumpAst(ast));
         }
-        
+
         else {
-            const result = run(input);
-            console.log(display(result, details));
+            const executionResult = run(input);
+            if (executionResult.hadError) {
+                displayError(executionResult.error);
+            } else {
+                console.log(display(executionResult.result, details));
+            }
         }
     }
 }

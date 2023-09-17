@@ -1,9 +1,11 @@
 import { parse } from './parser.mjs';
 import { stringify, makeNumber, makeString, makeBool, arg } from './util.mjs';
 import { mathFunctions } from './builtins/mathFunctions.mjs';
+import { stringFunctions } from './builtins/strFunctions.mjs';
 import { makeFunction } from './function.mjs';
+import { ParsingError, RuntimeError, unboundSymbol } from './errors.mjs';
 
-const builtinFunctions = [...mathFunctions];
+const builtinFunctions = [...mathFunctions, ...stringFunctions];
 
 const specialForms = new Map([
     ["if", {
@@ -33,11 +35,18 @@ const specialForms = new Map([
         type: 'special',
         name: 'let',
         impl: (env, form) => {
-            if (form.children[1].type !== 'symbol') throw new Error("Expected symbol (TODO)");
+            const [_, parameters, body] = form.children;
+            if (parameters?.type !== 'list') throw new Error("Expected list (TODO)");
+            if (body?.type !== 'list') throw new Error("Expected list (TODO, code)");
             // TODO: Refine this
-            const value = valueOf(form.children[2]);
-            env.vars.set(form.children[1].value, value);
-            return value;
+            const [symbolObj, valueObj] = form.children[1].children;
+            if (symbolObj.type !== 'symbol') throw new Error("Expected symbol");
+            enterBlock([
+                { symbol: symbolObj.value, value: valueObj }
+            ]);
+            const returnValue = evalList(form.children[2]);
+            exitBlock();
+            return returnValue;
         }
     }],
     ["defun", {
@@ -49,78 +58,79 @@ const specialForms = new Map([
             if (parameters?.type !== 'list') throw new Error("Expected list (TODO)");
             if (body?.type !== 'list') throw new Error("Expected list (TODO)");
 
-            // TODO: Refine this
+            const parameterNames = parameters.children.map(c => c.value);
+
             const func = makeFunction(
                 functionName.value,
                 "Custom function", //todo?
                 parameters.children.map(c => arg(c.value, 'any')), 'any',
                 (...args) => {
-                    // todo: enter new scope with args bound
-                    return evalList(form.children[3]);
-                    // todo: exit scope
+                    let nParams = Math.min(parameterNames.length, args.length);
+                    const bindings = [];
+                    for (let i = 0; i < nParams; i++) {
+                        bindings.push({ symbol: parameterNames[i], value: args[i] });
+                    }
+                    enterBlock(bindings);
+                    const returnValue = evalList(form.children[3]);
+                    exitBlock();
+                    return returnValue;
                 }
             );
 
-            env.vars.set(form.children[1].value, func);
+            runtime.rootEnvironment.boundSymbols.set(form.children[1].value, func);
             return func;
         }
     }]
 ]);
 
-const world = { vars: new Map([["true", { type: 'bool', value: true }], ["false", { type: 'bool', value: false }]]) };
+const runtime = {
+    rootEnvironment: null,
+    currentEnvironment: null
+};
+
+enterBlock([
+    { symbol: "true", value: { type: 'bool', value: true } },
+    { symbol: "false", value: { type: 'bool', value: false } },
+]);
+runtime.rootEnvironment = runtime.currentEnvironment;
+
+function makeEnvironment(parent) {
+    return {
+        parent,
+        boundSymbols: new Map()
+    };
+}
+
+function enterBlock(symbolsAndValues = []) {
+    const newEnvironment = makeEnvironment(runtime.currentEnvironment);
+    for (let symbolAndValue of symbolsAndValues) {
+        newEnvironment.boundSymbols.set(symbolAndValue.symbol, symbolAndValue.value);
+    }
+    runtime.currentEnvironment = newEnvironment;
+}
+
+function exitBlock() {
+    if (!runtime.currentEnvironment?.parent) throw new Error("No parent environment. Did you try to exit the root environment?");
+    runtime.currentEnvironment = runtime.currentEnvironment.parent;
+}
 
 const builtins = new Map();
 for (const builtinFunc of builtinFunctions) {
     builtins.set(builtinFunc.name, builtinFunc);
-    for (const alias of builtinFunc.aliases) {
-        builtins.set(alias, builtinFunc);
-    }
 }
 
-
-//         [
-//             "rand-int", {
-//                 type: 'function',
-//                 name: "rand-int",
-//                 parameters: [{ type: "number", name: "min" }, { type: "number", name: "max" }],
-//                 impl: (min, max) => makeNumber(Math.floor(Math.random() * (max.value - min.value + 1) + min.value))
-//             }
-//         ],
-//         [
-//             "concat", {
-//                 type: 'function',
-//                 name: "concat",
-//                 parameters: [{ type: "string", rest: true, name: "operands" }],
-//                 impl: (...operands) => makeString(operands.map(o => o.value).join(''))
-//             },
-//         ],
-//         [
-//             "repeat", {
-//                 type: 'function',
-//                 name: "repeat",
-//                 parameters: [{ type: "number", name: "times" }, { type: "string", name: "string" }],
-//                 impl: (times, string) => makeString(string.value.repeat(times.value))
-//             },
-//         ],
-
-
-//         [
-//             "print", {
-//                 type: 'function',
-//                 name: "print",
-//                 parameters: [{ type: "any", rest: true, name: "operands" }],
-//                 impl: (...operands) => console.log(`> ${operands.map(stringify).join(" ")}`)
-//             },
-//         ]
-//     ]
-// );
-
 const resolve = (symbol) => {
-    if (specialForms.has(symbol)) return specialForms.get(symbol);
-    else if (world.vars.has(symbol)) return world.vars.get(symbol);
-    else if (builtins.has(symbol)) return builtins.get(symbol);
+    let env = runtime.currentEnvironment;
 
-    throw new Error(`Unresolvable symbol "${symbol}"`);
+    while (env) {
+        if (env.boundSymbols.has(symbol)) return env.boundSymbols.get(symbol);
+        env = env.parent;
+    }
+
+    if (specialForms.has(symbol)) return specialForms.get(symbol);
+    if (builtins.has(symbol)) return builtins.get(symbol);
+
+    unboundSymbol(symbol);
 }
 
 const valueOf = (obj) => {
@@ -132,8 +142,6 @@ const valueOf = (obj) => {
     }
     else return obj;
 }
-
-
 
 const convert = (obj, targetType) => {
     if (targetType === 'any' || obj.type === targetType) return obj;
@@ -175,6 +183,7 @@ const convert = (obj, targetType) => {
 const callFunction = (func, ...args) => {
     const _arguments = [];
     let argIndex = 0;
+
     for (let param of func.parameters) {
         if (param.rest) {
             for (let i = argIndex; i < args.length; i++) {
@@ -202,7 +211,7 @@ const evalList = (node) => {
 
 
     if (first.type === 'special') {
-        return first.impl(world, node)
+        return first.impl(runtime, node)
     }
     else if (first.type === 'function') {
         const args = node.children.slice(1).map(valueOf);
@@ -213,7 +222,7 @@ const evalList = (node) => {
     }
     else {
         // todo: better error message and handling
-        throw new Error("Not a function");
+        throw new Error("Not a function", node);
     }
 }
 
@@ -224,18 +233,56 @@ const evalNode = (node) => {
 
 const evalProgram = (ast) => {
     let result;
-    for (let child of ast.children) {
-        result = evalNode(child);
+    let hadError = false;
+    let error = null;
+
+    try {
+        for (let child of ast.children) {
+            result = evalNode(child);
+        }
+    } catch (e) {
+        if (!(e instanceof RuntimeError)) throw e;
+        hadError = true;
+        error = e;
     }
-    return result;
+
+    return { result, hadError, error };
+}
+
+export const parseProgram = (src) => {
+    let result;
+    let hadError = false;
+    let error = null;
+
+    try {
+        result = parse(src);
+    } catch (e) {
+        if (!(e instanceof ParsingError)) throw e;
+        hadError = true;
+        error = e;
+    }
+
+    return { result, hadError, error };
 }
 
 export const run = (src) => {
-    const ast = parse(src);
-    return evalProgram(ast);
+    const parseResult = parseProgram(src);
+    if (parseResult.hadError) return parseResult;
+
+    return evalProgram(parseResult.result);
 }
 
 //console.log(run(`(eval '(+ 3 5))`));
 
 //console.log(run(` (let x 5) (let xsquared (* x x)) (+ xsquared)`));
 //console.log(run(`(defun foo () (+ 1 2)) (foo)`));
+
+// console.log(run(`
+//     (defun fib (n) (
+//         if (< n 2) (n) (
+//             fib (- n 1) (- n 2)
+//         )
+//     ))
+
+//     (fib 10)
+// `))
