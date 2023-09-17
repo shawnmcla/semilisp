@@ -4,18 +4,29 @@ export const reWhitespace = /\s/, reDigit = /\d/, reAlpha = /[A-Za-z]/, reAlphaN
 export const isWhitespace = c => reWhitespace.test(c);
 export const isDigit = c => reDigit.test(c);
 export const isValidIdentifierChar = c => reIdentifier.test(c);
+export const NIL = { type: 'nil', value: null, };
+
+export const escapeString = (str) => {
+    return str
+        .replaceAll('\\', '\\\\')
+        .replaceAll('"', '\\"')
+        .replaceAll('\t', '\\t')
+        .replaceAll('\n', '\\n');
+}
 
 export const display = (obj, details = false) => {
-    if (obj == null) {
-        return chalk.italic.gray('< Nil >');
+    if (obj == null || obj.type === 'nil') {
+        return chalk.italic.gray('<Nil>');
     } else if (obj?.type == 'number') {
         return chalk.yellow(+obj.value);
     } else if (obj?.type == 'string') {
-        return chalk.green(`"${obj?.value?.toString() ?? ""}"`);
+        return chalk.green(`"${(obj?.value?.toString()) ?? ""}"`);
     } else if (obj?.type == 'bool') {
         return chalk.cyan(obj?.value?.toString());
     } else if (obj?.type == 'symbol') {
         return chalk.bold.whiteBright(obj?.value?.toString() ?? "");
+    } else if (obj?.type == 'keyword') {
+        return chalk.bold.magenta(obj?.value?.toString() ?? "");
     } else if (obj?.type == 'list') {
         return `${obj?.quoted ? "'(" : "("}${obj?.children?.map(display).join(', ')})`;
     } else if (obj?.type == 'special') {
@@ -35,6 +46,35 @@ export const display = (obj, details = false) => {
     return `DON'T KNOW HOW TO DISPLAY TYPE ${obj?.type ?? "null"}`;
 }
 
+const printNode = (node) => {
+    switch (node.type) {
+        case 'list':
+            return `${node.quoted ? "'(" : "("}${node.children.map(print).join(" ")})`
+        case 'number':
+            return `${node.value}`;
+        case 'bool':
+            return node.value.toString();
+        case 'symbol':
+        case 'keyword':
+            return node.value;
+        case 'string':
+            return `"${escapeString(node.value)}"`;
+        default:
+            throw new Error("Invalid node type", node);
+    }
+}
+
+export const print = (node) => {
+    if (!node) return "";
+    if (node.root === true) {
+        const representations = [];
+        for (let child of node.children) {
+            representations.push(printNode(child));
+        }
+        return representations.join("\n");
+    }
+    return printNode(node);
+}
 
 export const dumpAst = (ast, level = 0) => {
     let output = "";

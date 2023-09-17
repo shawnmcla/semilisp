@@ -1,11 +1,15 @@
 import { parse } from './parser.mjs';
-import { stringify, makeNumber, makeString, makeBool, arg } from './util.mjs';
+import { stringify, display, makeNumber, makeString, makeBool, arg, print, NIL } from './util.mjs';
+
 import { mathFunctions } from './builtins/mathFunctions.mjs';
 import { stringFunctions } from './builtins/strFunctions.mjs';
+import { ioFunctions } from './builtins/ioFunctions.mjs';
+
 import { makeFunction } from './function.mjs';
 import { ParsingError, RuntimeError, unboundSymbol } from './errors.mjs';
+import { readFile } from 'node:fs/promises';
 
-const builtinFunctions = [...mathFunctions, ...stringFunctions];
+const builtinFunctions = [...mathFunctions, ...stringFunctions, ...ioFunctions];
 
 const specialForms = new Map([
     ["if", {
@@ -20,9 +24,43 @@ const specialForms = new Map([
             if (conditionResultObject.value) {
                 return valueOf(thenForm);
             }
-            return valueOf(elseForm);
+
+            if (elseForm)
+                return valueOf(elseForm);
+
+            return NIL;
         }
-    }], ["eval", {
+    }],
+    ["case", {
+        type: 'special',
+        name: 'case',
+        impl: (_, form) => {
+            const branches = form.children.slice(1);
+            //if(branches?.type !== 'list') throw new Error("Expected list (TODO)");
+            let elseBranch = null;
+            for (let branch of branches) {
+                const conditionResultObject = valueOf(branch.children[0]);
+                // TODO: Add validation/sanity checks
+                if (conditionResultObject.type === 'keyword' && conditionResultObject.value === ':else') {
+                    elseBranch = branch.children[1];
+                }
+                else if (conditionResultObject.type !== 'bool') throw new Error("expected bool (TODO)");
+                else {
+                    const thenForm = branch.children[1];
+                    if (conditionResultObject.value) {
+                        return valueOf(thenForm);
+                    }
+                }
+            }
+
+            if (elseBranch) {
+                return valueOf(elseBranch);
+            }
+
+            return NIL;
+        }
+    }],
+    ["eval", {
         type: 'special',
         name: 'eval',
         impl: (env, form) => {
@@ -31,15 +69,16 @@ const specialForms = new Map([
             if (toEval?.type === 'list') return evalList(toEval);
             return valueOf(toEval);
         }
-    }], ["let", {
+    }], 
+    ["let", {
         type: 'special',
         name: 'let',
         impl: (env, form) => {
-            const [_, parameters, body] = form.children;
-            if (parameters?.type !== 'list') throw new Error("Expected list (TODO)");
+            const [_, bindingPair, body] = form.children;
+            if (bindingPair?.type !== 'list') throw new Error("Expected list (TODO)");
             if (body?.type !== 'list') throw new Error("Expected list (TODO, code)");
             // TODO: Refine this
-            const [symbolObj, valueObj] = form.children[1].children;
+            const [symbolObj, valueObj] = bindingPair.children;
             if (symbolObj.type !== 'symbol') throw new Error("Expected symbol");
             enterBlock([
                 { symbol: symbolObj.value, value: valueObj }
@@ -47,6 +86,18 @@ const specialForms = new Map([
             const returnValue = evalList(form.children[2]);
             exitBlock();
             return returnValue;
+        }
+    }],
+    [ "def", {
+        type: 'special',
+        name: 'def',
+        impl: (env, form) => {
+            const [_, symbol, value] = form.children;
+            if(symbol?.type !== 'symbol') throw new Error("Expected symbol (TODO)");
+            const evaluatedValue = valueOf(value);
+            runtime.globalEnvironment.boundSymbols.set(symbol.value, evaluatedValue);
+
+            return evaluatedValue;
         }
     }],
     ["defun", {
@@ -77,14 +128,15 @@ const specialForms = new Map([
                 }
             );
 
-            runtime.rootEnvironment.boundSymbols.set(form.children[1].value, func);
+            runtime.globalEnvironment.boundSymbols.set(form.children[1].value, func);
+            func.environment = copyEnvironment(runtime.currentEnvironment);
             return func;
         }
     }]
 ]);
 
 const runtime = {
-    rootEnvironment: null,
+    globalEnvironment: null,
     currentEnvironment: null
 };
 
@@ -92,7 +144,7 @@ enterBlock([
     { symbol: "true", value: { type: 'bool', value: true } },
     { symbol: "false", value: { type: 'bool', value: false } },
 ]);
-runtime.rootEnvironment = runtime.currentEnvironment;
+runtime.globalEnvironment = runtime.currentEnvironment;
 
 function makeEnvironment(parent) {
     return {
@@ -107,6 +159,22 @@ function enterBlock(symbolsAndValues = []) {
         newEnvironment.boundSymbols.set(symbolAndValue.symbol, symbolAndValue.value);
     }
     runtime.currentEnvironment = newEnvironment;
+}
+
+function copyEnvironment(environment) {
+    const newEnvironment = makeEnvironment(null);
+    let current = environment;
+    while (current) {
+        for (let [symbol, value] of current.boundSymbols) {
+            if (!newEnvironment.boundSymbols.has(symbol)) {
+                newEnvironment.boundSymbols.set(symbol, value);
+            }
+        }
+        current = current.parent;
+    }
+
+    console.log("Made new environment ", newEnvironment);
+    return newEnvironment;
 }
 
 function exitBlock() {
@@ -201,7 +269,13 @@ const callFunction = (func, ...args) => {
         }
     }
 
-    return func.impl(..._arguments);
+    // Feels kinda hacky
+    const current = runtime.currentEnvironment;
+    runtime.currentEnvironment = func.environment;
+    const returnValue = func.impl(..._arguments);
+    runtime.currentEnvironment = current;
+
+    return returnValue;
 }
 
 const evalList = (node) => {
@@ -272,17 +346,19 @@ export const run = (src) => {
     return evalProgram(parseResult.result);
 }
 
-//console.log(run(`(eval '(+ 3 5))`));
+let filePath;
+if (filePath = process.argv[2]) {
+    console.log(`Loading file '${filePath}'\n`);
+    try {
+        const contents = await readFile(filePath, { encoding: 'utf-8' });
+        const runResult = run(contents);
+        if (runResult.hadError) {
+            console.error("Error: ", runResult.error.message);
+        } else {
+            console.log(display(runResult.result));
+        }
 
-//console.log(run(` (let x 5) (let xsquared (* x x)) (+ xsquared)`));
-//console.log(run(`(defun foo () (+ 1 2)) (foo)`));
-
-// console.log(run(`
-//     (defun fib (n) (
-//         if (< n 2) (n) (
-//             fib (- n 1) (- n 2)
-//         )
-//     ))
-
-//     (fib 10)
-// `))
+    } catch (err) {
+        console.error(err.message);
+    }
+}

@@ -1,0 +1,28 @@
+(
+    defun fizzbuzz (n)
+    (
+        case 
+        (
+            (= 0 (% n 15))
+            (io-print "fizzbuzz")
+        )
+        (
+            (= 0 (% n 3))
+            (io-print "fizz")
+        )
+        (
+            (= 0 (% n 5))
+            (io-print "buzz")
+        )
+    )
+)
+
+
+(io-print "fizzbuzz 3 => ")
+(fizzbuzz 3)
+
+(io-print "fizzbuzz 5 => ")
+(fizzbuzz 5)
+
+(io-print "fizzbuzz 15 => ")
+(fizzbuzz 15)

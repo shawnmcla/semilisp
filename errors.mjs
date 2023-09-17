@@ -12,3 +12,13 @@ export const unexpectedCharacter = (character, sourceInfo = null) => {
     const errorMessage = `Unexpected character '${character}'${sourceInfo ? `" at line ${sourceInfo.line}, col ${sourceInfo.col}` : ''}`;
     throw new ParsingError(errorMessage);
 }
+
+export const unterminatedString = (sourceInfo = null) => {
+    const errorMessage = `Unterminated string literal ${sourceInfo ? `at line ${sourceInfo.line}, col ${sourceInfo.col}` : ''}`;
+    throw new ParsingError(errorMessage);
+}
+
+export const invalidEscapeChar = (character, sourceInfo = null) => {
+    const errorMessage = `Unexpected escape character '${character}'${sourceInfo ? `" at line ${sourceInfo.line}, col ${sourceInfo.col}` : ''}`;
+    throw new ParsingError(errorMessage);
+}

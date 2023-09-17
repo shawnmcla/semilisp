@@ -1,4 +1,4 @@
-import { unexpectedCharacter } from "./errors.mjs";
+import { invalidEscapeChar, unexpectedCharacter, unterminatedString } from "./errors.mjs";
 import { isDigit, isValidIdentifierChar, isWhitespace } from "./util.mjs";
 
 export const parse = (src) => {
@@ -7,7 +7,7 @@ export const parse = (src) => {
     let line = 1;
     let lastNewLine = 1;
 
-    const root = { type: "list", prev: null, children: [] };
+    const root = { type: "list", prev: null, children: [], root: true };
     let current = root;
 
     const beginList = (quoted = false) => {
@@ -17,7 +17,7 @@ export const parse = (src) => {
     }
 
     const endList = () => {
-        if(!current) unexpectedCharacter(src[i - 1]);
+        if (!current) unexpectedCharacter(src[i - 1]);
         current.end = i;
         current.src = src.substring(current.start - (current.quoted ? 1 : 0), current.end);
         current = current.prev;
@@ -26,12 +26,14 @@ export const parse = (src) => {
     const advance = () => src[i++];
 
     const peek = () => src[i];
+    const peekNext = () => src[i + 1];
 
     const isAtEnd = () => i >= src.length;
 
     const emitNumber = (lexeme) => ({ type: "number", lexeme, value: parseFloat(lexeme) });
     const emitString = (lexeme) => ({ type: "string", lexeme, value: lexeme.substring(1, lexeme.length - 1) });
     const emitSymbol = (lexeme) => ({ type: "symbol", lexeme, value: lexeme });
+    const emitKeyword = (lexeme) => ({ type: "keyword", lexeme, value: lexeme });
 
     while (!isAtEnd()) {
         let c = advance();
@@ -64,12 +66,49 @@ export const parse = (src) => {
         }
 
         else if (c === '"') {
-            let start = i - 1;
-            while (!isAtEnd() && peek() !== '"') advance();
-            advance();
-            current.children.push(emitString(src.substring(start, i)));
+            const stringParts = [c];
+            while (true) {
+                const peeked = peek();
+                if (isAtEnd()) {
+                    unterminatedString();
+                }
+                else if (peeked === '"') {
+                    break;
+                }
+                else if (peeked === '\\') {
+                    let next = peekNext();
+                    switch (next) {
+                        case '\\':
+                            stringParts.push('\\');
+                            break;
+                        case 'n':
+                            stringParts.push('\n');
+                            break;
+                        case 't':
+                            stringParts.push('\t');
+                            break;
+                        case '"':
+                            stringParts.push('"');
+                            break;
+                        default:
+                            invalidEscapeChar(next);
+                    }
+                    advance();
+                    advance();
+                }
+                else {
+                    stringParts.push(peeked);
+                    advance();
+                }
+            }
+            stringParts.push(advance());
+            current.children.push(emitString(stringParts.join('')));
         }
-
+        else if(c === ':' &&  /[^\s\(\)]/.test(peek())) {
+            let start = i - 1;
+            while (!isAtEnd() && /[^\s\(\)]/.test(peek())) advance();
+            current.children.push(emitKeyword(src.substring(start, i)));
+        }
         else {
             let start = i - 1;
             while (!isAtEnd() && /[^\s\(\)]/.test(peek())) advance();

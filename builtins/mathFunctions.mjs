@@ -28,6 +28,11 @@ export const mathFunctions = [
         [arg('x', 'number'), arg('y', 'number')], "number",
         (x, y) => makeNumber(Math.floor(x?.value / y?.value)),
     ),
+    makeFunction(
+        "%", "Returns the result of x modulo y",
+        [arg('x', 'number'), arg('y', 'number')], "number",
+        (x, y) => makeNumber(x?.value % y?.value),
+    ),
 
     makeFunction(
         "pow", "Raises the base value to the power specified",
