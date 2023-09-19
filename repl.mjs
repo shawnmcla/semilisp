@@ -3,24 +3,9 @@ import { stdin as input, stdout as output } from 'node:process';
 import * as readline from 'node:readline/promises';
 import { parse } from './parser.mjs';
 import { run } from './shitlisp.mjs';
-import { display, dumpAst } from './util.mjs';
+import { display, dumpAst } from './util/cliTextUtil.mjs';
 
 const rl = readline.createInterface({ input, output, terminal: false });
-
-// console.log(display(null));
-// console.log(display({ type: 'number', value: 69 }));
-// console.log(display({ type: 'string', value: "fooBar" }));
-// console.log(display({ type: 'symbol', value: "+" }));
-// console.log(display({ type: 'special', name: "if" }));
-// console.log(display({ type: 'list', quoted: true, children: [{ type: 'number', value: 420 }, { type: 'number', value: 666 }] }));
-// console.log(display({ type: 'special', name: "if" }));
-// console.log(display({ type: 'special', name: "if" }));
-// console.log(display(makeFunction(
-//     "pow", "Raises the base value to the power specified",
-//     [arg('base', 'number'), rest('power', 'number')], "number",
-//     (base, power) => makeNumber(Math.pow(base.value, power.value)),
-//     ["^"]
-// )));
 
 let exit = false;
 

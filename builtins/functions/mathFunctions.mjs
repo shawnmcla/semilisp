@@ -1,5 +1,5 @@
-import { makeFunction } from "../function.mjs";
-import { arg, rest, makeNumber, makeBool } from '../util.mjs';
+import { arg, rest, makeFunction } from "../../function.mjs";
+import { makeNumber, makeBool } from '../../types.mjs';
 
 export const mathFunctions = [
     // Arithmetic

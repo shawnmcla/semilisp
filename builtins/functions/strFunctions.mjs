@@ -1,5 +1,5 @@
-import { makeFunction } from "../function.mjs";
-import { arg, rest, makeString, makeNumber } from '../util.mjs';
+import { arg, rest, makeFunction } from "../../function.mjs";
+import { makeString, makeNumber } from '../../types.mjs';
 
 export const stringFunctions = [
     makeFunction(

@@ -1,21 +1,26 @@
 import { parse } from './parser.mjs';
-import { stringify, display, makeNumber, makeString, makeBool, arg, print, NIL } from './util.mjs';
-
-import { mathFunctions } from './builtins/mathFunctions.mjs';
-import { stringFunctions } from './builtins/strFunctions.mjs';
-import { ioFunctions } from './builtins/ioFunctions.mjs';
-
-import { makeFunction } from './function.mjs';
+import { makeNumber, makeString, makeBool, NIL } from './types.mjs';
+import { makeFunction, arg } from './function.mjs';
 import { ParsingError, RuntimeError, unboundSymbol } from './errors.mjs';
-import { readFile } from 'node:fs/promises';
-
-const builtinFunctions = [...mathFunctions, ...stringFunctions, ...ioFunctions];
+import { builtinFunctions } from './builtins/builtinFunctions.mjs';
 
 const specialForms = new Map([
-    ["if", {
+    ["do", {
+        type: "special",
+        name: "do",
+        impl: (env, form) => {
+            const [_, ...children] = form.children;
+            let last;
+            for (let child of children) {
+                last = valueOf(child);
+            }
+            return last;
+        }
+    }
+    ], ["if", {
         type: 'special',
         name: 'if',
-        impl: (_, form) => {
+        impl: (env, form) => {
             const conditionResultObject = valueOf(form.children[1]);
             // TODO: Add validation/sanity checks
             if (conditionResultObject.type !== 'bool') throw new Error("expected bool (TODO)");
@@ -34,7 +39,7 @@ const specialForms = new Map([
     ["case", {
         type: 'special',
         name: 'case',
-        impl: (_, form) => {
+        impl: (env, form) => {
             const branches = form.children.slice(1);
             //if(branches?.type !== 'list') throw new Error("Expected list (TODO)");
             let elseBranch = null;
@@ -69,7 +74,7 @@ const specialForms = new Map([
             if (toEval?.type === 'list') return evalList(toEval);
             return valueOf(toEval);
         }
-    }], 
+    }],
     ["let", {
         type: 'special',
         name: 'let',
@@ -88,12 +93,12 @@ const specialForms = new Map([
             return returnValue;
         }
     }],
-    [ "def", {
+    ["def", {
         type: 'special',
         name: 'def',
         impl: (env, form) => {
             const [_, symbol, value] = form.children;
-            if(symbol?.type !== 'symbol') throw new Error("Expected symbol (TODO)");
+            if (symbol?.type !== 'symbol') throw new Error("Expected symbol (TODO)");
             const evaluatedValue = valueOf(value);
             runtime.globalEnvironment.boundSymbols.set(symbol.value, evaluatedValue);
 
@@ -144,6 +149,7 @@ enterBlock([
     { symbol: "true", value: { type: 'bool', value: true } },
     { symbol: "false", value: { type: 'bool', value: false } },
 ]);
+
 runtime.globalEnvironment = runtime.currentEnvironment;
 
 function makeEnvironment(parent) {
@@ -217,7 +223,7 @@ const convert = (obj, targetType) => {
     if (targetType === 'bool') {
         let boolValue;
 
-        if (obj.type === 'number') boolValue = obj.value >= 0;
+        if (obj.type === 'number') boolValue = obj.value > 0;
         else if (obj.type === 'string') boolValue = (obj.value?.length ?? 0) >= 0;
         else boolValue = true;
 
@@ -340,25 +346,10 @@ export const parseProgram = (src) => {
 }
 
 export const run = (src) => {
+    console.debug("RUN..", src);
     const parseResult = parseProgram(src);
+    console.debug("PARSE RESULT", parseResult);
     if (parseResult.hadError) return parseResult;
 
     return evalProgram(parseResult.result);
-}
-
-let filePath;
-if (filePath = process.argv[2]) {
-    console.log(`Loading file '${filePath}'\n`);
-    try {
-        const contents = await readFile(filePath, { encoding: 'utf-8' });
-        const runResult = run(contents);
-        if (runResult.hadError) {
-            console.error("Error: ", runResult.error.message);
-        } else {
-            console.log(display(runResult.result));
-        }
-
-    } catch (err) {
-        console.error(err.message);
-    }
 }
