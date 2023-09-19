@@ -1,5 +1,5 @@
 import { strict as assert } from "node:assert";
-import { run } from "../shitlisp.mjs";
+import { run } from "../toylisp.mjs";
 
 const noValue = Symbol("NO VALUE");
 const threwError = Symbol("THREW ERROR");

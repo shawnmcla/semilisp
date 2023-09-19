@@ -71,7 +71,8 @@ const specialForms = new Map([
         impl: (env, form) => {
             const toEval = form.children[1];
             if (toEval == null) throw new Error("Expected something TODO");
-            if (toEval?.type === 'list') return evalList(toEval);
+            const valueToEval = valueOf(toEval);
+            if (valueToEval?.type === 'list') return evalList(valueToEval);
             return valueOf(toEval);
         }
     }],

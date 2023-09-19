@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import { stdin as input, stdout as output } from 'node:process';
 import * as readline from 'node:readline/promises';
 import { parse } from './parser.mjs';
-import { run } from './shitlisp.mjs';
+import { run } from './toylisp.mjs';
 import { display, dumpAst } from './util/cliTextUtil.mjs';
 
 const rl = readline.createInterface({ input, output, terminal: false });

@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { run } from "./shitlisp.mjs";
+import { run } from "./toylisp.mjs";
 import { display } from "./util/cliTextUtil.mjs";
 
 let filePath;

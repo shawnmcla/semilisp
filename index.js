@@ -1,5 +1,5 @@
 import { parse } from "./parser.mjs";
-import { run } from "./shitlisp.mjs";
+import { run } from "./toylisp.mjs";
 import { display } from "./util/webTextUtil.mjs";
 
 const consoleWrapper = document.querySelector(".console");
@@ -111,12 +111,30 @@ function runCode(src){
 let leftBraces = 0;
 let rightBraces = 0;
 let lineBuffer = [];
-
+const samples = new Map([
+    ["fib", "(defun fib (n) (if (< n 2) 1 (+ (fib (- n 1)) (fib (- n 2)))))"],
+    ["math", "(+ (pow 10 2) (* 5 5))"],
+    ["string", `(str-cat (str-repeat "Hello! " 5) (str-repeat (str-upper "World") 5)))`],
+    ["eval", `(eval (read "'(+ 1 2 3 4 5)"))`]
+])
 function handleMetaCommand(command) {
     console.log("Meta command: ", command);
-    switch(command.substring(1)){
+    const tokens = command.substring(1).split(" ");
+    switch(tokens[0]){
         case "clear":
             output.innerHTML = "";
+            break;
+        case "sample":
+            if(samples.has(tokens[1])){
+                input.value = samples.get(tokens[1]);
+                return;
+            } else {
+                printOutput("Usage: #sample [sample name]");
+                printOutput("Available samples:");
+                for(let sampleName of samples.keys()){
+                    printOutput(sampleName);
+                }
+            }
             break;
         case "clearhistory":
             history.lines = [];
