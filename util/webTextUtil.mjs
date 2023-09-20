@@ -19,12 +19,12 @@ export const display = (obj, details = false) => {
         if (details) {
             return `<span class="value-function">Function ${obj?.name}<br/>` +
                 `Parameters: (<br/>` +
-                `${obj?.parameters?.map(p => `  ${(p?.rest ? '...' : '')}${p?.name} : ${p?.type}`)}<br/>` +
+                `${obj?.parameters?.map(p => `  ${(p?.isRest ? '...' : '')}${p?.name} : ${p?.type}`)}<br/>` +
                 `) <br/>` +
                 `Docstring:<br/>` +
                 `  ${obj?.docString}</span>`
         } else {
-            return `fn ${obj?.name} (${obj?.parameters.map(p => (p?.rest ? '...' : '') + p.name).join(', ')})`
+            return `fn ${obj?.name} (${obj?.parameters.map(p => (p?.isRest ? '...' : '') + p.name).join(', ')})`
         }
     }
 

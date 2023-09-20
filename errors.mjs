@@ -2,9 +2,15 @@ export class ParsingError extends Error { }
 
 export class RuntimeError extends Error { }
 export class UnboundSymbolError extends RuntimeError { }
+export class NotAFunctionError extends RuntimeError { }
 
 export const unboundSymbol = (symbol, sourceInfo = null) => {
     const errorMessage = `Unbound symbol '${symbol}'${sourceInfo ? `" at line ${sourceInfo.line}, col ${sourceInfo.col}` : ''}`;
+    throw new UnboundSymbolError(errorMessage);
+}
+
+export const notAFunction = (obj, sourceInfo = null) => {
+    const errorMessage = `'${obj}' is not a function ${sourceInfo ? `" at line ${sourceInfo.line}, col ${sourceInfo.col}` : ''}`;
     throw new UnboundSymbolError(errorMessage);
 }
 

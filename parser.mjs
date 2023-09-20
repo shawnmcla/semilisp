@@ -1,5 +1,7 @@
 import { invalidEscapeChar, unexpectedCharacter, unterminatedString } from "./errors.mjs";
 import { isDigit, isValidIdentifierChar, isWhitespace } from "./util.mjs";
+import { Bool, Number, String, Symbol, Keyword } from "./types/primitiveTypes.mjs";
+import { List, ParserList } from "./types/collections.mjs";
 
 export const parse = (src) => {
     let i = 0;
@@ -7,11 +9,14 @@ export const parse = (src) => {
     let line = 1;
     let lastNewLine = 1;
 
-    const root = { type: "list", prev: null, children: [], root: true };
+    const root = new ParserList(null, true);
+    root.prev = null;
+    root.root = true;
+
     let current = root;
 
     const beginList = (quoted = false) => {
-        const tree = { type: "list", prev: current, children: [], start: i - 1, quoted, sourceLine: line, sourceCol: i - lastNewLine };
+        const tree = new ParserList(current, false, [], quoted, { sourceLine: line, sourceCol: i - lastNewLine });
         current.children.push(tree);
         current = tree;
     }
@@ -30,10 +35,10 @@ export const parse = (src) => {
 
     const isAtEnd = () => i >= src.length;
 
-    const emitNumber = (lexeme) => ({ type: "number", lexeme, value: parseFloat(lexeme) });
-    const emitString = (lexeme) => ({ type: "string", lexeme, value: lexeme.substring(1, lexeme.length - 1) });
-    const emitSymbol = (lexeme) => ({ type: "symbol", lexeme, value: lexeme });
-    const emitKeyword = (lexeme) => ({ type: "keyword", lexeme, value: lexeme });
+    const emitNumber = (lexeme) => new Number(parseFloat(lexeme)); //({ type: "number", lexeme, value: parseFloat(lexeme) });
+    const emitString = (lexeme) => new String(lexeme.substring(1, lexeme.length - 1)); //({ type: "string", lexeme, value: lexeme.substring(1, lexeme.length - 1) });
+    const emitSymbol = (lexeme) => new Symbol(lexeme);
+    const emitKeyword = (lexeme) => new Keyword(lexeme.substring(1));
 
     while (!isAtEnd()) {
         let c = advance();

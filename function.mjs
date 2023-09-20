@@ -1,5 +1,9 @@
+import { Function, FunctionParameter } from "./types/functions.mjs";
+
 export const makeFunction = (name, docString, parameters, returnType, impl, data = {}) => {
-    return Object.assign({ type: 'function', name, docString, parameters, returnType, impl }, data);
+   //return Object.assign({ type: 'function', name, docString, parameters, returnType, impl }, data);
+   return new Function(name, docString, parameters, returnType, impl);
 }
-export const arg = (name, type) => ({ name, type })
-export const rest = (name, type) => ({ name, type, rest: true })
+
+export const param = (name, type) => new FunctionParameter(name, type); //({ name, type })
+export const rest = (name, type) => new FunctionParameter(name, type, true);

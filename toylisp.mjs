@@ -1,9 +1,11 @@
 import { parse } from './parser.mjs';
-import { makeNumber, makeString, makeBool, NIL } from './types.mjs';
-import { makeFunction, arg } from './function.mjs';
-import { ParsingError, RuntimeError, unboundSymbol } from './errors.mjs';
+import { makeFunction, param } from './function.mjs';
+import { ParsingError, RuntimeError, unboundSymbol, notAFunction } from './errors.mjs';
 import { builtinFunctions } from './builtins/builtinFunctions.mjs';
 
+import { Nil, Bool, Number, String, Symbol, Keyword } from "./types/primitiveTypes.mjs";
+import { List, ParserList } from "./types/collections.mjs";
+ 
 const specialForms = new Map([
     ["do", {
         type: "special",
@@ -46,7 +48,7 @@ const specialForms = new Map([
             for (let branch of branches) {
                 const conditionResultObject = valueOf(branch.children[0]);
                 // TODO: Add validation/sanity checks
-                if (conditionResultObject.type === 'keyword' && conditionResultObject.value === ':else') {
+                if (conditionResultObject.type === 'keyword' && conditionResultObject.value === 'else') {
                     elseBranch = branch.children[1];
                 }
                 else if (conditionResultObject.type !== 'bool') throw new Error("expected bool (TODO)");
@@ -120,7 +122,7 @@ const specialForms = new Map([
             const func = makeFunction(
                 functionName.value,
                 "Custom function", //todo?
-                parameters.children.map(c => arg(c.value, 'any')), 'any',
+                parameters.children.map(c => param(c.value, 'any')), 'any',
                 (...args) => {
                     let nParams = Math.min(parameterNames.length, args.length);
                     const bindings = [];
@@ -147,8 +149,8 @@ const runtime = {
 };
 
 enterBlock([
-    { symbol: "true", value: { type: 'bool', value: true } },
-    { symbol: "false", value: { type: 'bool', value: false } },
+    { symbol: "true", value: new Bool(true) },
+    { symbol: "false", value: new Bool(false) },
 ]);
 
 runtime.globalEnvironment = runtime.currentEnvironment;
@@ -207,6 +209,10 @@ const resolve = (symbol) => {
     unboundSymbol(symbol);
 }
 
+// Obtains the value for an object based on the following:
+//   if obj is a symbol, resolve it
+//   if obj is an unquoted list (an expression), evaluate it
+//   otherwise, return obj as is
 const valueOf = (obj) => {
     if (obj.type === 'symbol') {
         return resolve(obj.value);
@@ -219,39 +225,8 @@ const valueOf = (obj) => {
 
 const convert = (obj, targetType) => {
     if (targetType === 'any' || obj.type === targetType) return obj;
-
-    if (targetType === 'bool') {
-        let boolValue;
-
-        if (obj.type === 'number') boolValue = obj.value > 0;
-        else if (obj.type === 'string') boolValue = (obj.value?.length ?? 0) >= 0;
-        else boolValue = true;
-
-        return makeBool(boolValue);
-    }
-
-    if (targetType === 'number') {
-        let numberValue;
-
-        if (obj.type === 'number') numberValue = obj.value;
-        else if (obj.type === 'string') numberValue = parseFloat(obj.value);
-        else numberValue = NaN;
-
-        return makeNumber(numberValue);
-    }
-
-    if (targetType === 'string') {
-        let stringValue;
-
-        if (obj.type === 'string') stringValue = obj.value;
-        else if (obj.type === 'bool') stringValue = obj.value ? 'true' : 'false';
-        else if (obj.type === 'number') stringValue = obj.value.toString();
-        else stringValue = "";
-
-        return makeString(stringValue);
-    }
-
-
+    // TODO: Remove this FN eventually, for now, just replace body to use new classes
+    return obj.coerceObjTo(targetType);
 }
 
 const callFunction = (func, ...args) => {
@@ -259,16 +234,16 @@ const callFunction = (func, ...args) => {
     let argIndex = 0;
 
     for (let param of func.parameters) {
-        if (param.rest) {
+        if (param.isRest) {
             for (let i = argIndex; i < args.length; i++) {
                 let arg = args[i];
-                arg = convert(arg, param.type);
+                //arg = convert(arg, param.type);
                 _arguments.push(arg);
             }
         }
         else {
             let arg = args[argIndex];
-            arg = convert(args[argIndex], param.type);
+            //arg = convert(args[argIndex], param.type);
             _arguments.push(arg);
 
             argIndex++;
@@ -289,7 +264,6 @@ const evalList = (node) => {
 
     const first = valueOf(node.children[0]);
 
-
     if (first.type === 'special') {
         return first.impl(runtime, node)
     }
@@ -301,8 +275,7 @@ const evalList = (node) => {
         return first;
     }
     else {
-        // todo: better error message and handling
-        throw new Error("Not a function", node);
+        notAFunction(first?.stringify());
     }
 }
 
@@ -347,6 +320,7 @@ export const parseProgram = (src) => {
 
 export const run = (src) => {
     const parseResult = parseProgram(src);
+    //console.log(parseResult);
     if (parseResult.hadError) return parseResult;
 
     return evalProgram(parseResult.result);

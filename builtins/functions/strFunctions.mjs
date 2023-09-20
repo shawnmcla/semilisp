@@ -1,31 +1,31 @@
-import { arg, rest, makeFunction } from "../../function.mjs";
-import { makeString, makeNumber } from '../../types.mjs';
+import { param, rest, makeFunction } from "../../function.mjs";
+import { String, Number } from '../../types/primitiveTypes.mjs';
 
 export const stringFunctions = [
     makeFunction(
         "str-cat", "Concats an arbitrary number of strings together",
         [rest('operands', 'string')], "string",
-        (...operands) => makeString(operands.map(o => o?.value?.toString() ?? "").join(''))
+        (...operands) => new String(operands.map(o => o?.value?.toString() ?? "").join(''))
     ),
     makeFunction(
         "str-lower", "Converts a string to lowercase",
-        [arg('string', 'string')], "string",
-        (string) => makeString(string?.value?.toLowerCase())
+        [param('string', 'string')], "string",
+        (string) => new String(string?.value?.toLowerCase())
     ),
     makeFunction(
         "str-upper", "Converts a string to uppercase",
-        [arg('string', 'string')], "string",
-        (string) => makeString(string?.value?.toUpperCase())
+        [param('string', 'string')], "string",
+        (string) => new String(string?.value?.toUpperCase())
     ),
     makeFunction(
         "str-repeat", "Repeats a string the specified number of times",
-        [arg('string', 'string'), arg('times', 'number')], "string",
-        (string, times) => makeString(string?.value?.repeat(times?.value))
+        [param('string', 'string'), param('times', 'number')], "string",
+        (string, times) => new String(string?.value?.repeat(times?.value))
     ),
     makeFunction(
         "str-len", "Returns the length of a string",
-        [arg('string', 'string')], "number",
-        (string) => makeNumber(string?.value?.length ?? 0)
+        [param('string', 'string')], "number",
+        (string) => new Number(string?.value?.length ?? 0)
     ),
 
 ];
