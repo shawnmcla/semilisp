@@ -180,7 +180,6 @@ function copyEnvironment(environment) {
         current = current.parent;
     }
 
-    console.log("Made new environment ", newEnvironment);
     return newEnvironment;
 }
 
@@ -347,9 +346,7 @@ export const parseProgram = (src) => {
 }
 
 export const run = (src) => {
-    console.debug("RUN..", src);
     const parseResult = parseProgram(src);
-    console.debug("PARSE RESULT", parseResult);
     if (parseResult.hadError) return parseResult;
 
     return evalProgram(parseResult.result);

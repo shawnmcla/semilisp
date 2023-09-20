@@ -111,12 +111,14 @@ function runCode(src){
 let leftBraces = 0;
 let rightBraces = 0;
 let lineBuffer = [];
+
 const samples = new Map([
     ["fib", "(defun fib (n) (if (< n 2) 1 (+ (fib (- n 1)) (fib (- n 2)))))"],
     ["math", "(+ (pow 10 2) (* 5 5))"],
     ["string", `(str-cat (str-repeat "Hello! " 5) (str-repeat (str-upper "World") 5)))`],
     ["eval", `(eval (read "'(+ 1 2 3 4 5)"))`]
-])
+]);
+
 function handleMetaCommand(command) {
     console.log("Meta command: ", command);
     const tokens = command.substring(1).split(" ");
