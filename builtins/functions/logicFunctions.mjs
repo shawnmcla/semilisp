@@ -1,5 +1,5 @@
-import { param, rest, makeFunction } from "../../function.mjs";
-import { Number, Bool } from '../../types/primitiveTypes.mjs';
+import { makeFunction, rest } from "../../function.mjs";
+import { Bool } from '../../types/primitiveTypes.mjs';
 
 export const logicFunctions = [
     // Arithmetic

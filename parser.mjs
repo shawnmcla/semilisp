@@ -1,7 +1,7 @@
 import { invalidEscapeChar, unexpectedCharacter, unterminatedString } from "./errors.mjs";
-import { isDigit, isValidIdentifierChar, isWhitespace } from "./util.mjs";
-import { Bool, Number, String, Symbol, Keyword } from "./types/primitiveTypes.mjs";
-import { List, ParserList } from "./types/collections.mjs";
+import { ParserList } from "./types/collections.mjs";
+import { Keyword, Number, String, Symbol } from "./types/primitiveTypes.mjs";
+import { isDigit, isWhitespace } from "./util.mjs";
 
 export const parse = (src) => {
     let i = 0;

@@ -1,4 +1,4 @@
-import { Obj, Number, Bool, String } from "./primitiveTypes.mjs";
+import { Obj } from "./primitiveTypes.mjs";
 
 export class SequenceType extends Obj {
     get isPrimitive() { return false };

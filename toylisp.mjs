@@ -1,10 +1,9 @@
-import { parse } from './parser.mjs';
-import { makeFunction, param } from './function.mjs';
-import { ParsingError, RuntimeError, unboundSymbol, notAFunction } from './errors.mjs';
 import { builtinFunctions } from './builtins/builtinFunctions.mjs';
+import { ParsingError, RuntimeError, notAFunction, unboundSymbol } from './errors.mjs';
+import { makeFunction, param } from './function.mjs';
+import { parse } from './parser.mjs';
 
-import { Nil, Bool, Number, String, Symbol, Keyword } from "./types/primitiveTypes.mjs";
-import { List, ParserList } from "./types/collections.mjs";
+import { Bool } from "./types/primitiveTypes.mjs";
  
 const specialForms = new Map([
     ["do", {

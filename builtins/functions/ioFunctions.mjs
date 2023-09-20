@@ -1,5 +1,5 @@
-import { param, rest, makeFunction } from "../../function.mjs";
-import { Number, Bool, NIL } from '../../types/primitiveTypes.mjs';
+import { makeFunction, param } from "../../function.mjs";
+import { NIL } from '../../types/primitiveTypes.mjs';
 
 export const ioFunctions = [
     // Stdout

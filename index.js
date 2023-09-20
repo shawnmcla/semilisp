@@ -1,4 +1,3 @@
-import { parse } from "./parser.mjs";
 import { run } from "./toylisp.mjs";
 import { display } from "./util/webTextUtil.mjs";
 

@@ -1,6 +1,6 @@
-import { param, rest, makeFunction } from "../../function.mjs";
+import { makeFunction, param } from "../../function.mjs";
 import { parse } from "../../parser.mjs";
-import { String, NIL} from '../../types/primitiveTypes.mjs';
+import { NIL, String } from '../../types/primitiveTypes.mjs';
 
 export const metaFunctions = [
     makeFunction(
